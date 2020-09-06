@@ -35,7 +35,7 @@ public class SimpleThreadPoolExecutor {
         public Worker(Runnable runnable, boolean property) {
             this.runnable = runnable;
             this.property = property;
-            this.thread = new Thread();
+            this.thread = new Thread(this);
         }
 
         @Override
@@ -100,8 +100,8 @@ public class SimpleThreadPoolExecutor {
             lock.unlock();
         }
         if (worker != null){
-
-            new Thread(worker).start();
+            final Thread t = worker.thread;
+            t.start();
         }
     }
 
