@@ -1,4 +1,6 @@
-package com.qzw;
+package com;
+
+import lombok.extern.slf4j.Slf4j;
 
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -9,9 +11,11 @@ import java.util.concurrent.locks.ReentrantLock;
  * @date 2020/9/7 0:43
  * @description 简单的线程池实现
  */
+@Slf4j
 public class SimpleThreadPoolExecutor {
 
     class Worker implements Runnable {
+
         Runnable runnable;
         /**
          * 线程的性质
@@ -90,12 +94,13 @@ public class SimpleThreadPoolExecutor {
                 worker = new Worker(runnable, false);
                 size.getAndAdd(1);
                 //如果线程池满则将任务放入任务队列,返回false说明任务队列也满了则执行拒绝策略
-            } else if (!workerQueue.offer(runnable)) {
-                //执行拒绝策略
-                runnable.run();
+            } else if (workerQueue.size() < 99999999) {
+                workerQueue.put(runnable);
+            }else {
+                throw new RuntimeException("线程池和队列已满！执行拒绝策略！");
             }
-        } catch (Exception e) {
-            System.out.println("线程执行过程中发生了错误！！！！");
+        } catch (RuntimeException | InterruptedException e) {
+            log.info("{}",e.getMessage());
         } finally {
             lock.unlock();
         }
@@ -106,9 +111,12 @@ public class SimpleThreadPoolExecutor {
     }
 
     public void runWorker(Worker worker) {
+        final ReentrantLock lock = new ReentrantLock();
+
         //获取第一个任务
         Runnable task = worker.runnable;
-        while (task != null || (task = getTask()) == null) {
+        while (task != null || (task = getTask(worker.property)) != null) {
+            lock.lock();
             try {
                 task.run();
             } catch (Exception e) {
@@ -119,21 +127,29 @@ public class SimpleThreadPoolExecutor {
                 size.getAndDecrement();
                 break;
             } finally {
+                lock.unlock();
                 task = null;
+
+
             }
         }
+        size.getAndDecrement();
 
     }
 
     /**
      * 获取任务
      */
-    public Runnable getTask() {
-        for (; ; ) {
-            Runnable r = workerQueue.poll();
-            if (r!=null){
-                return r;
-            }
+    public Runnable getTask(boolean property) {
+        Runnable r = null;
+        try {
+            r = workerQueue.take();
+        } catch (InterruptedException e) {
+            e.printStackTrace();
         }
+        if (r!=null){
+            return r;
+        }
+        return null;
     }
 }
