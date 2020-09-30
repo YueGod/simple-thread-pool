@@ -129,15 +129,15 @@ public class SimpleThreadPoolExecutor {
                 task.run();
             } catch (Exception e) {
                 //如果执行异常则跳出循环。
-                if (worker.property) {
-                    ctl.getAndDecrement();
-                }
-                size.getAndDecrement();
+
                 break;
             } finally {
                 lock.unlock();
                 task = null;
             }
+        }
+        if (worker.property) {
+            ctl.getAndDecrement();
         }
         size.getAndDecrement();
 
