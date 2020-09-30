@@ -2,7 +2,7 @@ package com;
 
 import lombok.extern.slf4j.Slf4j;
 
-import java.util.concurrent.LinkedBlockingQueue;
+import java.util.concurrent.*;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.locks.ReentrantLock;
 
@@ -78,6 +78,14 @@ public class SimpleThreadPoolExecutor {
     public void execute(Runnable runnable) {
         addWorker(runnable);
     }
+    /**
+     * 具有返回值的
+     */
+    public <V> Future<V> submit(Callable<V> callable){
+        RunnableFuture<V> futureTask = new FutureTask<>(callable);
+        execute(futureTask);
+        return futureTask;
+    };
 
     public void addWorker(Runnable runnable) {
         Worker worker = null;
@@ -129,8 +137,6 @@ public class SimpleThreadPoolExecutor {
             } finally {
                 lock.unlock();
                 task = null;
-
-
             }
         }
         size.getAndDecrement();
